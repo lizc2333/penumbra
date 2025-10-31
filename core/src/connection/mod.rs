@@ -205,4 +205,28 @@ impl Connection {
 
         Ok(meid)
     }
+
+    /// Returns the target configuration of the device.
+    /// This configuration can be interpreted as follows:
+    ///
+    /// SBC = target_config & 0x1
+    /// SLA = target_config & 0x2
+    /// DAA = target_config & 0x4
+    pub async fn get_target_config(&mut self) -> Result<u32> {
+        self.echo(&[Command::GetTargetConfig as u8], 1).await?;
+
+        let mut config_bytes = [0u8; 4];
+        self.port.read_exact(&mut config_bytes).await?;
+
+        let mut status_bytes = [0u8; 2];
+        self.port.read_exact(&mut status_bytes).await?;
+        let status = u16::from_le_bytes(status_bytes);
+
+        if status != 0 {
+            error!("GetTargetConfig failed with status: 0x{:04X}", status);
+            return Err(Error::conn("GetTargetConfig failed"));
+        }
+
+        Ok(u32::from_be_bytes(config_bytes))
+    }
 }
