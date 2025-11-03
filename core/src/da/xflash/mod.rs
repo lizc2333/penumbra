@@ -166,12 +166,14 @@ impl DAProtocol for XFlash {
         self.conn.port.write_all(&hdr).await?;
 
         let mut pos = 0;
+        let max_chunk_size = 0x80000;
+
         while pos < data.len() {
-            let end = std::cmp::min(pos + 64, data.len());
+            let end = data.len().min(pos + max_chunk_size);
             let chunk = &data[pos..end];
-            debug!("[TX] Sending chunk ({} bytes): {:02X?}", chunk.len(), chunk);
+            debug!("[TX] Sending chunk ({} bytes)", chunk.len());
             self.conn.port.write_all(chunk).await?;
-            pos += chunk.len();
+            pos = end;
         }
 
         self.conn.port.flush().await?;
