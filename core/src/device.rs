@@ -139,8 +139,7 @@ impl Device {
         self.dev_info.set_data(device_info).await;
 
         if self.da_data.is_some() {
-            self.protocol = Some(self.init_da_protocol(conn, true).await?);
-            self.get_partitions().await;
+            self.protocol = Some(self.init_da_protocol(conn).await?);
         } else {
             self.connection = Some(conn);
         }
@@ -174,7 +173,7 @@ impl Device {
                 }
             }
             ConnectionType::Da => {
-                self.protocol = Some(self.init_da_protocol(conn, false).await?);
+                self.protocol = Some(self.init_da_protocol(conn).await?);
             }
         };
 
@@ -205,11 +204,19 @@ impl Device {
             return Err(Error::conn("Device is not connected. Call init() first."));
         }
 
+        let conn_type = self.get_connection()?.connection_type;
+
         if self.protocol.is_none() {
             let conn =
                 self.connection.take().ok_or_else(|| Error::conn("No connection available."))?;
-            let protocol = self.init_da_protocol(conn, true).await?;
+            let protocol = self.init_da_protocol(conn).await?;
             self.protocol = Some(protocol);
+        }
+
+        let protocol = self.protocol.as_mut().unwrap();
+        if conn_type != ConnectionType::Da {
+            protocol.upload_da().await?;
+            self.set_connection_type(ConnectionType::Da)?;
         }
 
         // Fallback to ensure we always have the partitions available.
@@ -235,11 +242,7 @@ impl Device {
         Ok(self.get_protocol().unwrap())
     }
 
-    async fn init_da_protocol(
-        &mut self,
-        conn: Connection,
-        upload_da: bool,
-    ) -> Result<Box<dyn DAProtocol + Send>> {
+    async fn init_da_protocol(&mut self, conn: Connection) -> Result<Box<dyn DAProtocol + Send>> {
         let da_bytes = self.da_data.clone().ok_or_else(|| {
             Error::conn("DA protocol is not initialized and no DA file was provided.")
         })?;
@@ -250,15 +253,10 @@ impl Device {
             Error::penumbra(format!("No compatible DA for hardware code 0x{:04X}", hw_code))
         })?;
 
-        let mut protocol: Box<dyn DAProtocol + Send> = match da.da_type {
+        let protocol: Box<dyn DAProtocol + Send> = match da.da_type {
             DAType::V5 => Box::new(XFlash::new(conn, da, self.dev_info.clone())),
             _ => return Err(Error::penumbra("Unsupported DA type")),
         };
-
-        if upload_da {
-            protocol.set_connection_type(ConnectionType::Da)?;
-            protocol.upload_da().await?;
-        }
 
         Ok(protocol)
     }
