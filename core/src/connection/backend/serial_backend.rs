@@ -118,6 +118,10 @@ impl MTKPort for SerialMTKPort {
                 let mut response = [0u8; 1];
                 match port.read_exact(&mut response).await {
                     Ok(_) if response[0] == 0x5F => break,
+                    Ok(_) if response[0] == 0xA0 => {
+                        // We already handshaked, just return
+                        return Ok(());
+                    }
                     Ok(_) | Err(_) => {
                         info!("Received byte: 0x{:02X}", response[0]);
                     }
