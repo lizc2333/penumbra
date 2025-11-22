@@ -10,6 +10,8 @@ use penumbra::core::devinfo::{DevInfoData, DeviceInfo};
 use penumbra::core::seccfg::LockFlag;
 use penumbra::{Device, DeviceBuilder, MTKPort, find_mtk_port};
 use ratatui::Frame;
+#[cfg(target_os = "windows")]
+use ratatui::crossterm::event::KeyEventKind;
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Color, Style};
@@ -185,6 +187,12 @@ impl DevicePage {
 #[async_trait::async_trait]
 impl Page for DevicePage {
     async fn handle_input(&mut self, ctx: &mut AppCtx, key: KeyEvent) {
+        // Windows specific fix
+        #[cfg(target_os = "windows")]
+        if key.kind != KeyEventKind::Press {
+            return;
+        }
+
         match key.code {
             KeyCode::Up => self.menu.previous(),
             KeyCode::Down => self.menu.next(),

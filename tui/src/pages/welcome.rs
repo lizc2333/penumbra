@@ -5,6 +5,8 @@
 use std::fs;
 
 use penumbra::da::DAFile;
+#[cfg(target_os = "windows")]
+use ratatui::crossterm::event::KeyEventKind;
 use ratatui::crossterm::event::{Event, KeyCode, KeyEvent};
 use ratatui::prelude::*;
 use ratatui::widgets::*;
@@ -117,6 +119,12 @@ impl Page for WelcomePage {
     }
 
     async fn handle_input(&mut self, ctx: &mut AppCtx, key: KeyEvent) {
+        // Windows specific fix
+        #[cfg(target_os = "windows")]
+        if key.kind != KeyEventKind::Press {
+            return;
+        }
+
         match &mut self.state {
             WelcomeState::Browsing(explorer) => {
                 if let Err(err) = explorer.handle(&Event::Key(key)) {
