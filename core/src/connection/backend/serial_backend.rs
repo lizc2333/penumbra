@@ -33,23 +33,25 @@ impl SerialMTKPort {
     }
 
     pub fn from_port_info(port_info: SerialPortInfo) -> Option<Self> {
-        let connection_type = match &port_info.port_type {
-            SerialPortType::UsbPort(usb_info) => match (usb_info.vid, usb_info.pid) {
-                (0x0E8D, 0x0003) => ConnectionType::Brom,
-                (0x0E8D, 0x2000) => ConnectionType::Preloader,
-                (0x0E8D, 0x2001) => ConnectionType::Da,
-                _ => {
-                    error!("Unknown MTK port type: {:04x}:{:04x}", usb_info.vid, usb_info.pid);
-                    return None;
-                }
-            },
-            _ => {
-                error!("Not a USB serial port");
+        let SerialPortType::UsbPort(usb_info) = &port_info.port_type else {
+            error!("Not a USB serial port");
+            return None;
+        };
+
+        let connection_type = KNOWN_PORTS
+            .iter()
+            .find(|&&(vid, pid, _)| vid == usb_info.vid && pid == usb_info.pid)
+            .map(|&(_, _, ct)| ct);
+
+        let connection_type = match connection_type {
+            Some(ct) => ct,
+            None => {
+                error!("Unknown MTK port type: {:04x}:{:04x}", usb_info.vid, usb_info.pid);
                 return None;
             }
         };
 
-        let baudrate: u32 = match connection_type {
+        let baudrate = match connection_type {
             ConnectionType::Brom => 115_200,
             ConnectionType::Preloader | ConnectionType::Da => 921_600,
         };
@@ -166,22 +168,32 @@ impl MTKPort for SerialMTKPort {
     fn get_port_name(&self) -> String {
         self.port_info.port_name.clone()
     }
-}
 
-pub fn find_mtk_serial_ports() -> Vec<SerialPortInfo> {
-    match serialport::available_ports() {
-        Ok(ports) => ports
-            .into_iter()
-            .filter(|p| match &p.port_type {
-                SerialPortType::UsbPort(usb_info) => KNOWN_PORTS
-                    .iter()
-                    .any(|(vid, pid)| usb_info.vid == *vid && usb_info.pid == *pid),
-                _ => false,
-            })
-            .collect(),
-        Err(e) => {
-            error!("Error listing serial ports: {}", e);
-            vec![]
+    async fn find_device() -> Result<Option<Self>> {
+        use serialport::{SerialPortType, available_ports};
+
+        let serial_ports = match available_ports() {
+            Ok(ports) => ports
+                .into_iter()
+                .filter(|p| match &p.port_type {
+                    SerialPortType::UsbPort(usb_info) => KNOWN_PORTS
+                        .iter()
+                        .any(|(vid, pid, _)| usb_info.vid == *vid && usb_info.pid == *pid),
+                    _ => false,
+                })
+                .collect::<Vec<_>>(),
+            Err(e) => {
+                error!("Error listing serial ports: {}", e);
+                vec![]
+            }
+        };
+
+        for port_info in serial_ports {
+            if let Some(port) = SerialMTKPort::from_port_info(port_info) {
+                return Ok(Some(port));
+            }
         }
+
+        Ok(None)
     }
 }

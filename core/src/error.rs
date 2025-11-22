@@ -58,6 +58,12 @@ impl From<std::io::Error> for Error {
     }
 }
 
+impl From<nusb::Error> for Error {
+    fn from(err: nusb::Error) -> Self {
+        Error::io(err.to_string())
+    }
+}
+
 /*
     XFlash error codes work as follows:
 

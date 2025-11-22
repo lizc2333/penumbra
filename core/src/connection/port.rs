@@ -5,12 +5,15 @@
 
 use std::fmt::Debug;
 
+use crate::connection::backend::*;
 use crate::error::Result;
 
-pub const KNOWN_PORTS: &[(u16, u16)] = &[
-    (0x0E8D, 0x0003), // Mediatek USB Port (BROM)
-    (0x0E8D, 0x2000), // Mediatek USB Port (Preloader)
-    (0x0E8D, 0x2001), // Mediatek USB Port (DA)
+/// List of all ports available for connecting and what mode they refer to.
+/// Add more entries here for vendor specific ports
+pub const KNOWN_PORTS: &[(u16, u16, ConnectionType)] = &[
+    (0x0E8D, 0x0003, ConnectionType::Brom), // Mediatek USB Port (BROM)
+    (0x0E8D, 0x2000, ConnectionType::Preloader), // Mediatek USB Port (Preloader)
+    (0x0E8D, 0x2001, ConnectionType::Da),   // Mediatek USB Port (DA)
 ];
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -32,59 +35,34 @@ pub trait MTKPort: Send + Debug {
     fn get_connection_type(&self) -> ConnectionType;
     fn get_baudrate(&self) -> u32;
     fn get_port_name(&self) -> String;
+
+    async fn find_device() -> Result<Option<Self>>
+    where
+        Self: Sized;
 }
 
 pub async fn find_mtk_port() -> Option<Box<dyn MTKPort>> {
-    #[cfg(not(feature = "libusb"))]
-    {
-        use crate::connection::backend::serial_backend;
-        let serial_ports = serial_backend::find_mtk_serial_ports();
-        if !serial_ports.is_empty()
-            && let Some(port) =
-                serial_backend::SerialMTKPort::from_port_info(serial_ports[0].clone())
-        {
-            let mut boxed_port: Box<dyn MTKPort> = Box::new(port);
-            if boxed_port.open().await.is_ok() {
-                return Some(boxed_port);
-            }
-        }
-    }
+    // Default NUSB backend
+    #[cfg(not(any(feature = "libusb", feature = "serial")))]
+    let port = UsbMTKPort::find_device().await;
 
+    // LibUSB backend
     #[cfg(feature = "libusb")]
-    {
-        use rusb::{Context, UsbContext};
-        use tokio::task;
+    let port = UsbMTKPort::find_device().await;
 
-        use crate::connection::backend::libusb_backend::UsbMTKPort;
+    // Serial backend, not ideal since some features (i.e. linecoding) aren't available.
+    #[cfg(feature = "serial")]
+    let port = SerialMTKPort::find_device().await;
 
-        let usb_ports = task::spawn_blocking(|| {
-            let context = Context::new().ok()?;
-            let devices = context.devices().ok()?;
-
-            let mut found_ports = Vec::new();
-
-            for device_ref in devices.iter() {
-                let device = device_ref.clone();
-                if let Some(usb_port) = UsbMTKPort::from_device(device) {
-                    found_ports.push(usb_port);
-                }
-            }
-
-            Some(found_ports)
-        })
-        .await
-        .ok()
-        .flatten();
-
-        if let Some(mut ports) = usb_ports {
-            for usb_port in ports.drain(..) {
-                let mut boxed_port: Box<dyn MTKPort> = Box::new(usb_port);
-                if boxed_port.open().await.is_ok() {
-                    return Some(boxed_port);
-                }
+    match port {
+        Ok(Some(mut port)) => {
+            if port.open().await.is_ok() {
+                Some(Box::new(port))
+            } else {
+                None
             }
         }
+        Ok(None) => None,
+        Err(_) => None,
     }
-
-    None
 }
