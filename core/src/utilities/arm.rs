@@ -68,7 +68,7 @@ pub fn encode_ldr(
     let dat_off = base_addr + dat_offset as u32;
 
     let delta = (dat_off - pc) as usize;
-    if delta.is_multiple_of(4) {
+    if !delta.is_multiple_of(4) {
         return Err(Error::penumbra("Delta for encoding LDR is not aligned!"));
     }
 
