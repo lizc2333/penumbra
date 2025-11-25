@@ -66,9 +66,16 @@ pub struct DAFile {
 
 impl DAFile {
     pub fn parse_da(raw_data: &[u8]) -> Result<DAFile> {
+        if raw_data.len() < 0x6C + 0xDC {
+            return Err(Error::penumbra("Invalid DA file, too small"));
+        }
+
         let hdr = &raw_data[..0x6C];
 
-        let da_type = if &hdr[0..2] == b"\xDA\xDA" {
+        let legacy_test_pos = 0x6C + 0xD8;
+        let da_type = if raw_data.len() >= legacy_test_pos + 2
+            && &raw_data[legacy_test_pos..legacy_test_pos + 2] == b"\xDA\xDA"
+        {
             DAType::Legacy
         } else if hdr.windows(10).any(|w| w == b"MTK_DA_v6") {
             DAType::V6
@@ -96,6 +103,7 @@ impl DAFile {
             let start = 0x6C + (i as usize * da_entry_size);
             let end = start + da_entry_size;
             let da_entry = &raw_data[start..end];
+            let mut inner_da_type = da_type.clone();
 
             // For each DA, we parse its header entry
             let magic = u16::from_le_bytes(da_entry[0x00..0x02].try_into().unwrap());
@@ -137,6 +145,13 @@ impl DAFile {
                     "Region: offset={:08X}, length={:08X}, addr={:08X}, sig_len={:08X}",
                     offset, length, addr, sig_len
                 );
+
+                if inner_da_type != DAType::Legacy
+                    && region_data.windows(b"AND_SECRO_v".len()).any(|w| w == b"AND_SECRO_v")
+                {
+                    inner_da_type = DAType::Legacy;
+                }
+
                 regions.push(DAEntryRegion {
                     data: region_data,
                     offset,
@@ -148,7 +163,7 @@ impl DAFile {
                 current_region_offset += 20; // Move to the next region header
             }
 
-            das.push(DA { da_type: da_type.clone(), regions, magic, hw_code, hw_sub_code });
+            das.push(DA { da_type: inner_da_type, regions, magic, hw_code, hw_sub_code });
             debug!(
                 "Parsed DA entry: hw_code={:04X}, hw_sub_code={:04X}, regions={}",
                 hw_code, hw_sub_code, region_count
