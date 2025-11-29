@@ -114,7 +114,7 @@ impl SecCfgV4 {
     }
 
     pub fn get_encrypted_hash(&self) -> Vec<u8> {
-        self.enc_hash.clone().unwrap_or(Vec::new())
+        self.enc_hash.clone().unwrap_or_default()
     }
 
     pub fn set_lock_state(&mut self, lock_flag: LockFlag) {
