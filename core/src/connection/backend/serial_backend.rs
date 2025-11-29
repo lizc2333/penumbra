@@ -196,4 +196,26 @@ impl MTKPort for SerialMTKPort {
 
         Ok(None)
     }
+
+    async fn ctrl_out(
+        &mut self,
+        request_type: u8,
+        request: u8,
+        value: u16,
+        index: u16,
+        data: &[u8],
+    ) -> Result<()> {
+        Err(Error::io("Control transfer OUT not supported on serial connections"))
+    }
+
+    async fn ctrl_in(
+        &mut self,
+        request_type: u8,
+        request: u8,
+        value: u16,
+        index: u16,
+        len: usize,
+    ) -> Result<Vec<u8>> {
+        Err(Error::io("Control transfer IN not supported on serial connections"))
+    }
 }

@@ -9,7 +9,7 @@ use std::time::Duration;
 use async_trait::async_trait;
 use nusb::descriptors::TransferType;
 use nusb::io::{EndpointRead, EndpointWrite};
-use nusb::transfer::{Bulk, Direction, In, Out};
+use nusb::transfer::{Bulk, ControlIn, ControlOut, ControlType, Direction, In, Out, Recipient};
 use nusb::{DeviceInfo, Interface};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -25,6 +25,7 @@ const BULK_OUT_SZ: usize = 0x80000;
 pub struct UsbMTKPort {
     info: DeviceInfo,
     interface: Option<Interface>,
+    ctrl_interface: Option<Interface>,
     reader: Option<EndpointRead<Bulk>>,
     writer: Option<EndpointWrite<Bulk>>,
     ep_out: u8,
@@ -50,6 +51,7 @@ impl UsbMTKPort {
         Self {
             info,
             interface: None,
+            ctrl_interface: None,
             writer: None,
             reader: None,
             ep_out: 0,
@@ -102,6 +104,7 @@ impl MTKPort for UsbMTKPort {
         }
 
         let device = self.info.open().await?;
+        let ctrl_iface = device.detach_and_claim_interface(0).await?;
         let iface = device.detach_and_claim_interface(1).await?;
 
         self.select_endpoints(&iface)?;
@@ -114,6 +117,7 @@ impl MTKPort for UsbMTKPort {
         self.reader = Some(rdr);
         self.writer = Some(wr);
         self.interface = Some(iface);
+        self.ctrl_interface = Some(ctrl_iface);
         self.is_open = true;
 
         Ok(())
@@ -215,5 +219,77 @@ impl MTKPort for UsbMTKPort {
         }
 
         Ok(None)
+    }
+
+    async fn ctrl_out(
+        &mut self,
+        request_type: u8,
+        request: u8,
+        value: u16,
+        index: u16,
+        data: &[u8],
+    ) -> Result<()> {
+        let iface =
+            self.ctrl_interface.as_ref().ok_or_else(|| Error::io("USB port is not open"))?;
+
+        let control_type = match (request_type >> 5) & 0b11 {
+            0 => ControlType::Standard,
+            1 => ControlType::Class,
+            2 => ControlType::Vendor,
+            _ => ControlType::Standard,
+        };
+
+        let recipient = match request_type & 0b11111 {
+            0 => Recipient::Device,
+            1 => Recipient::Interface,
+            2 => Recipient::Endpoint,
+            _ => Recipient::Other,
+        };
+
+        iface
+            .control_out(
+                ControlOut { control_type, recipient, request, value, index, data },
+                Duration::from_secs(1),
+            )
+            .await
+            .map_err(|e| Error::io(format!("Control OUT transfer failed: {}", e)))?;
+
+        Ok(())
+    }
+
+    async fn ctrl_in(
+        &mut self,
+        request_type: u8,
+        request: u8,
+        value: u16,
+        index: u16,
+        len: usize,
+    ) -> Result<Vec<u8>> {
+        let iface =
+            self.ctrl_interface.as_ref().ok_or_else(|| Error::io("USB port is not open"))?;
+
+        let control_type = match (request_type >> 5) & 0b11 {
+            0 => ControlType::Standard,
+            1 => ControlType::Class,
+            2 => ControlType::Vendor,
+            _ => ControlType::Standard,
+        };
+
+        let recipient = match request_type & 0b11111 {
+            0 => Recipient::Device,
+            1 => Recipient::Interface,
+            2 => Recipient::Endpoint,
+            _ => Recipient::Other,
+        };
+
+        let buf = iface
+            .control_in(
+                ControlIn { control_type, recipient, request, value, index, length: len as u16 },
+                Duration::from_secs(1),
+            )
+            .await
+            .map_err(|e| Error::io(format!("Control IN transfer failed: {}", e)))?;
+
+        Ok(buf)
     }
 }

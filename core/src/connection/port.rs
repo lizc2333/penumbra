@@ -50,6 +50,24 @@ pub trait MTKPort: Send + Debug {
     async fn find_device() -> Result<Option<Self>>
     where
         Self: Sized;
+
+    // Only for USB ports
+    async fn ctrl_out(
+        &mut self,
+        request_type: u8,
+        request: u8,
+        value: u16,
+        index: u16,
+        data: &[u8],
+    ) -> Result<()>;
+    async fn ctrl_in(
+        &mut self,
+        request_type: u8,
+        request: u8,
+        value: u16,
+        index: u16,
+        len: usize,
+    ) -> Result<Vec<u8>>;
 }
 
 pub async fn find_mtk_port() -> Option<Box<dyn MTKPort>> {
