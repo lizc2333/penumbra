@@ -76,8 +76,10 @@ pub async fn run_cli(args: &CliArgs) -> Result<()> {
     let mut last_seen = Instant::now();
     let timeout = Duration::from_millis(500);
 
+    info!("Waiting for MTK device...");
     let mtk_port = loop {
         if let Some(port) = find_mtk_port().await {
+            info!("Found MTK port: {}", port.get_port_name());
             break port;
         } else if last_seen.elapsed() > timeout {
             state.reset().await?;
@@ -116,6 +118,7 @@ pub async fn run_cli(args: &CliArgs) -> Result<()> {
 
         dev.reinit(dev_info).await?;
     } else {
+        info!("Initializing device...");
         dev.init().await?;
 
         state.soc_id = dev.dev_info.soc_id().await;
@@ -134,6 +137,7 @@ pub async fn run_cli(args: &CliArgs) -> Result<()> {
 
     if let Some(cmd) = &args.command {
         cmd.run(&mut dev, &mut state).await?;
+        state.target_config = dev.dev_info.target_config().await; // Update just in case after Kamakiri
         state.save().await?;
     } else {
         println!("No command provided.");
