@@ -45,6 +45,7 @@ mtk_commands! {
     Download(DownloadArgs),
     Write(WriteArgs),
     Read(ReadArgs),
+    ReadAll(ReadAllArgs),
     Seccfg(SeccfgArgs),
     Pgpt(PgptArgs),
 }
