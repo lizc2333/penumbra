@@ -50,6 +50,13 @@ pub trait DAProtocol: Send {
         progress: &mut (dyn FnMut(usize, usize) + Send),
     ) -> Result<()>;
 
+    async fn upload(
+        &mut self,
+        part_name: String,
+        reader: &mut (dyn AsyncWrite + Unpin + Send),
+        progress: &mut (dyn FnMut(usize, usize) + Send),
+    ) -> Result<()>;
+
     // Memory
     async fn read32(&mut self, addr: u32) -> Result<u32>;
     async fn write32(&mut self, addr: u32, value: u32) -> Result<()>;

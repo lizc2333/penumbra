@@ -194,6 +194,8 @@ where
     let mut buffer = vec![0u8; chunk_size];
     let mut bytes_written = 0;
 
+    info!("Starting download to partition '{}' with size 0x{:X}", part_name, size);
+
     progress(0, size);
     loop {
         let remaining = size - bytes_written;
@@ -214,7 +216,59 @@ where
         progress(bytes_written, size);
     }
 
-    debug!("Upload completed, 0x{:X} bytes sent.", size);
+    debug!("Download completed, 0x{:X} bytes sent.", size);
+
+    Ok(())
+}
+
+pub async fn upload<F, W>(
+    xflash: &mut XFlash,
+    part_name: String,
+    mut writer: W,
+    mut progress: F,
+) -> Result<()>
+where
+    W: AsyncWrite + Unpin,
+    F: FnMut(usize, usize),
+{
+    xflash.send_cmd(Cmd::Upload).await?;
+    xflash.send(part_name.as_bytes()).await?;
+
+    let size = {
+        let size_data = xflash.read_data().await?;
+        status_ok!(xflash);
+        if size_data.len() < 8 {
+            return Err(Error::proto("Received upload size is too short"));
+        }
+        let mut size_buf = [0u8; 8];
+        size_buf.copy_from_slice(&size_data[0..8]);
+        u64::from_le_bytes(size_buf) as usize
+    };
+
+    info!("Starting readback of partition '{}' with size 0x{:X}", part_name, size);
+
+    let mut bytes_read = 0;
+    progress(0, size);
+    loop {
+        let chunk = xflash.read_data().await?;
+        if chunk.is_empty() {
+            debug!("No data received, breaking.");
+            break;
+        }
+
+        writer.write_all(&chunk).await?;
+        bytes_read += chunk.len();
+
+        xflash.send(&[0u8; 4]).await?;
+
+        progress(bytes_read, size);
+
+        if bytes_read >= size {
+            debug!("Requested size read. Breaking.");
+            break;
+        }
+    }
+    info!("Upload completed, 0x{:X} bytes received.", size);
 
     Ok(())
 }

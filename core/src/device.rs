@@ -471,6 +471,41 @@ impl Device {
         protocol.download(partition.to_string(), size, reader, progress).await
     }
 
+    /// Like `read_partition`, but instead of reading using offsets and sizes from GPT,
+    /// it uses the partition name directly.
+    ///
+    /// This is the same method uses by SP Flash Tool when reading back without scatter.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use penumbra::{DeviceBuilder, find_mtk_port};
+    /// use tokio::fs::File;
+    /// use tokio::io::BufWriter;
+    ///
+    /// let mtk_port = find_mtk_port().await.ok_or("No MTK port found")?;
+    /// let da_data = std::fs::read("path/to/da/file").expect("Failed to read DA file");
+    /// let mut device =
+    ///     DeviceBuilder::default().with_mtk_port(mtk_port).with_da_data(da_data).build()?;
+    ///
+    /// device.init().await?;
+    /// // Readsback "logo" partition to "logo.bin"
+    /// let file = File::create("logo.bin").await?;
+    /// let mut writer = BufWriter::new(file);
+    /// let mut progress = |_written: usize, _total: usize| {};
+    /// device.upload("logo", &mut writer, &mut progress).await?;
+    /// ```
+    pub async fn upload(
+        &mut self,
+        partition: &str,
+        writer: &mut (dyn AsyncWrite + Unpin + Send),
+        progress: &mut (dyn FnMut(usize, usize) + Send),
+    ) -> Result<()> {
+        self.ensure_da_mode().await?;
+
+        let protocol = self.protocol.as_mut().unwrap();
+        protocol.upload(partition.to_string(), writer, progress).await
+    }
+
     pub async fn set_seccfg_lock_state(&mut self, lock_state: LockFlag) -> Option<Vec<u8>> {
         // Ensure DA mode first; this will populate partitions and storage
         self.ensure_da_mode().await.ok()?;

@@ -206,6 +206,15 @@ impl DAProtocol for XFlash {
         flash::download(self, part_name, size, reader, progress).await
     }
 
+    async fn upload(
+        &mut self,
+        part_name: String,
+        writer: &mut (dyn AsyncWrite + Unpin + Send),
+        progress: &mut (dyn FnMut(usize, usize) + Send),
+    ) -> Result<()> {
+        flash::upload(self, part_name, writer, progress).await
+    }
+
     async fn get_usb_speed(&mut self) -> Result<u32> {
         let usb_speed = self.devctrl(Cmd::GetUsbSpeed, None).await?;
         debug!("USB Speed Data: {:?}", usb_speed);
