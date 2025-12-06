@@ -2,6 +2,7 @@
     SPDX-License-Identifier: AGPL-3.0-or-later
     SPDX-FileCopyrightText: 2025 Shomy
 */
+use std::io::Cursor;
 use std::sync::Arc;
 
 use log::{debug, error, info};
@@ -13,7 +14,7 @@ use crate::connection::Connection;
 use crate::connection::port::ConnectionType;
 use crate::core::devinfo::DeviceInfo;
 use crate::core::seccfg::LockFlag;
-use crate::core::storage::{PartitionKind, Storage, StorageType};
+use crate::core::storage::{Partition, PartitionKind, Storage, StorageType, parse_gpt};
 use crate::da::xflash::cmds::*;
 use crate::da::xflash::exts::{read32_ext, write32_ext};
 use crate::da::xflash::sec::{parse_seccfg, write_seccfg};
@@ -253,6 +254,21 @@ impl DAProtocol for XFlash {
 
     async fn get_storage(&mut self) -> Option<Arc<dyn Storage>> {
         self.get_or_detect_storage().await
+    }
+
+    async fn get_partitions(&mut self) -> Vec<Partition> {
+        let storage_type = self.get_storage_type().await;
+
+        let mut progress = |_, _| {};
+        let mut pgpt_data = Vec::new();
+        let mut cursor = Cursor::new(&mut pgpt_data);
+        self.upload("PGPT".into(), &mut cursor, &mut progress).await.ok();
+        self.send(&[0u8; 4]).await.ok();
+
+        match parse_gpt(&pgpt_data, storage_type) {
+            Ok(parts) => parts,
+            Err(_) => return Vec::new(),
+        }
     }
 
     async fn set_seccfg_lock_state(&mut self, locked: LockFlag) -> Option<Vec<u8>> {

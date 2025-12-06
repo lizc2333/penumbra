@@ -10,7 +10,7 @@ use crate::connection::Connection;
 use crate::connection::port::ConnectionType;
 use crate::core::devinfo::DeviceInfo;
 use crate::core::seccfg::LockFlag;
-use crate::core::storage::{PartitionKind, Storage, StorageType};
+use crate::core::storage::{Partition, PartitionKind, Storage, StorageType};
 use crate::da::{DA, DAEntryRegion};
 use crate::error::Result;
 
@@ -63,6 +63,7 @@ pub trait DAProtocol: Send {
 
     async fn get_storage(&mut self) -> Option<Arc<dyn Storage>>;
     async fn get_storage_type(&mut self) -> StorageType;
+    async fn get_partitions(&mut self) -> Vec<Partition>;
 
     // Sec
     async fn set_seccfg_lock_state(&mut self, locked: LockFlag) -> Option<Vec<u8>>;

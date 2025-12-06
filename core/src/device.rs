@@ -2,7 +2,6 @@
     SPDX-License-Identifier: AGPL-3.0-or-later
     SPDX-FileCopyrightText: 2025 Shomy
 */
-use std::io::Cursor;
 use std::time::Duration;
 
 use log::{error, info};
@@ -14,8 +13,8 @@ use crate::connection::port::{ConnectionType, MTKPort};
 use crate::core::crypto::config::CryptoIO;
 use crate::core::devinfo::{DevInfoData, DeviceInfo};
 use crate::core::seccfg::LockFlag;
-use crate::core::storage::{Partition, PartitionKind, parse_gpt};
 use crate::da::{DAFile, DAProtocol, DAType, XFlash};
+use crate::core::storage::{Partition, PartitionKind};
 use crate::error::{Error, Result};
 
 /// A builder for creating a new [`Device`].
@@ -300,30 +299,7 @@ impl Device {
             None => return Vec::new(),
         };
 
-        let storage_type = protocol.get_storage_type().await;
-        let storage = match protocol.get_storage().await {
-            Some(s) => s,
-            None => return Vec::new(),
-        };
-
-        let user_section = storage.get_user_part();
-
-        let mut progress = |_read: usize, _total: usize| {};
-        let mut pgpt_data = Vec::new();
-        {
-            let mut cursor = Cursor::new(&mut pgpt_data);
-            if (protocol.read_flash(0x0, 0x8000, user_section, &mut progress, &mut cursor).await)
-                .is_err()
-            {
-                info!("Failed to read GPT data from device.");
-                return Vec::new();
-            }
-        }
-
-        let partitions = match parse_gpt(&pgpt_data, storage_type) {
-            Ok(p) => p,
-            Err(_) => return Vec::new(),
-        };
+        let partitions = protocol.get_partitions().await;
 
         self.dev_info.set_partitions(partitions.clone()).await;
 
