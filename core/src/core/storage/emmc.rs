@@ -6,6 +6,7 @@ use async_trait::async_trait;
 
 use crate::core::storage::{PartitionKind, Storage, StorageType};
 use crate::error::{Error, Result};
+use crate::utilities::xml::{get_tag, get_tag_usize};
 
 /// Represents eMMC storage information.
 #[derive(Debug)]
@@ -142,6 +143,39 @@ impl EmmcStorage {
                 user_size,
                 cid,
                 fwver,
+            },
+        })
+    }
+
+    pub fn from_xml_response(xml: &str) -> Result<Self> {
+        let block_size = get_tag_usize(xml, "emmc/block_size")? as u32;
+
+        let boot1_size = get_tag_usize(xml, "emmc/boot1_size")? as u64;
+        let boot2_size = get_tag_usize(xml, "emmc/boot2_size")? as u64;
+        let rpmb_size = get_tag_usize(xml, "emmc/rpmb_size")? as u64;
+        let gp1_size = get_tag_usize(xml, "emmc/gp1_size")? as u64;
+        let gp2_size = get_tag_usize(xml, "emmc/gp2_size")? as u64;
+        let gp3_size = get_tag_usize(xml, "emmc/gp3_size")? as u64;
+        let gp4_size = get_tag_usize(xml, "emmc/gp4_size")? as u64;
+        let user_size = get_tag_usize(xml, "emmc/user_size")? as u64;
+
+        let cid_str: String = get_tag(xml, "emmc/id")?;
+        let cid = hex::decode(cid_str).map_err(|_| Error::penumbra("Failed to decode EmmcCid"))?;
+
+        Ok(EmmcStorage {
+            info: EmmcInfo {
+                kind: 0x1,
+                block_size,
+                boot1_size,
+                boot2_size,
+                rpmb_size,
+                gp1_size,
+                gp2_size,
+                gp3_size,
+                gp4_size,
+                user_size,
+                cid,
+                fwver: 0,
             },
         })
     }
