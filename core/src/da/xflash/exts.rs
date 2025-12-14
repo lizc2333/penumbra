@@ -41,6 +41,7 @@ pub async fn boot_extensions(xflash: &mut XFlash) -> Result<bool> {
         Ok(_) => {}
         // If DA extensions fail to upload, we just return false, not a fatal error
         Err(_) => {
+            info!("Failed to upload DA extensions, continuing without extensions");
             return Ok(false);
         }
     }
