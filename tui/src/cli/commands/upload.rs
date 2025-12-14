@@ -29,10 +29,6 @@ pub struct UploadArgs {
 }
 
 impl CommandMetadata for UploadArgs {
-    fn aliases() -> &'static [&'static str] {
-        &["up"]
-    }
-
     fn visible_aliases() -> &'static [&'static str] {
         &["up"]
     }

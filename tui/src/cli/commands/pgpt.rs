@@ -22,10 +22,6 @@ pub struct PgptArgs {
 }
 
 impl CommandMetadata for PgptArgs {
-    fn aliases() -> &'static [&'static str] {
-        &["gpt"]
-    }
-
     fn visible_aliases() -> &'static [&'static str] {
         &["gpt"]
     }

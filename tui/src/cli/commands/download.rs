@@ -28,10 +28,6 @@ pub struct DownloadArgs {
 }
 
 impl CommandMetadata for DownloadArgs {
-    fn aliases() -> &'static [&'static str] {
-        &["dl"]
-    }
-
     fn visible_aliases() -> &'static [&'static str] {
         &["dl"]
     }
