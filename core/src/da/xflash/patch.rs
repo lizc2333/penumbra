@@ -6,6 +6,7 @@
 const EXT_LOADER: &[u8] = include_bytes!("../../../payloads/extloader_v5.bin");
 
 use log::info;
+use sha2::{Digest, Sha256};
 
 use crate::da::xflash::XFlash;
 use crate::da::{DA, DAEntryRegion};
@@ -14,13 +15,39 @@ use crate::utilities::arm::*;
 use crate::utilities::patching::*;
 
 /// Patches both DA1 and DA2, specific for V5 DA
-pub fn patch_da(_xflash: &mut XFlash) -> Result<DA> {
-    todo!()
+pub fn patch_da(xflash: &mut XFlash) -> Result<DA> {
+    let da2 = patch_da2(xflash)?;
+    let mut da1 = patch_da1(xflash)?;
+
+    let hash_pos = xflash.da.find_da_hash_offset();
+    match hash_pos {
+        Some(pos) => {
+            let mut hasher = Sha256::new();
+            hasher.update(&da2.data[..da2.data.len().saturating_sub(da2.sig_len as usize)]);
+            let hash_result = hasher.finalize();
+            patch(&mut da1.data, pos, &bytes_to_hex(&hash_result))?;
+
+            let original_da = &xflash.da;
+            let da = DA {
+                da_type: xflash.da.da_type.clone(),
+                regions: vec![original_da.regions[0].clone(), da1.clone(), da2.clone()],
+                magic: original_da.magic,
+                hw_code: original_da.hw_code,
+                hw_sub_code: original_da.hw_sub_code,
+            };
+            Ok(da)
+        }
+        None => {
+            info!("[Penumbra] Could not find DA1 hash position, skipping patching");
+            Ok(xflash.da.clone())
+        }
+    }
 }
 
 /// Patches only DA1, specific for V5 DA
-pub fn patch_da1(_xflash: &mut XFlash) -> Result<DAEntryRegion> {
-    todo!()
+pub fn patch_da1(xflash: &mut XFlash) -> Result<DAEntryRegion> {
+    let da1 = xflash.da.get_da1().cloned().unwrap();
+    Ok(da1)
 }
 
 /// Patches only DA2, specific for V5 DA

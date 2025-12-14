@@ -35,6 +35,9 @@ impl DAProtocol for XFlash {
             let mut kamakiri = Kamakiri2::new(mutex_da.clone());
             if let Ok(result) = kamakiri.run(self).await {
                 self.patch = !result;
+                if let Some(patched_da) = kamakiri.get_patched_da() {
+                    self.da = patched_da.to_owned();
+                }
             }
         }
 
