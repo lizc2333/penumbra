@@ -115,8 +115,8 @@ Core:
 * [x] Improve DA parsing and add DA patching
 
 TUI:
-* [ ] Add partition read and write (Add partition list next to the action list)
-* [ ] Make code reusable (add components like a custom FileExplorer, selectable list...)
+* [x] Add partition read and write (Add partition list next to the action list)
+* [x] Make code reusable (add components like a custom FileExplorer, selectable list...)
 * [ ] Change logo with an animated waning crescent moon with blinking stars around
 * [ ] Add a switch on the welcome screen to enable or disable logging (with selection for log level)
 
