@@ -94,6 +94,50 @@ impl UsbMTKPort {
 
         Err(Error::io("No bulk endpoints found"))
     }
+
+    #[cfg(windows)]
+    async fn setup_cdc(&self) -> Result<()> {
+        let iface = self.ctrl_interface.as_ref().ok_or(Error::io("Interface not open"))?;
+
+        const CDC_INTERFACE_NUM: u16 = 0;
+        const SET_LINE_CODING: u8 = 0x20;
+        const SET_CONTROL_LINE_STATE: u8 = 0x22;
+        const LINE_CODING: [u8; 7] = [0x00, 0x00, 0x0E, 0x00, 0x00, 0x00, 0x08];
+        const CONTROL_LINE_STATE: u16 = 0x03; // DTR | RTS
+
+        iface
+            .control_out(
+                ControlOut {
+                    control_type: ControlType::Class,
+                    recipient: Recipient::Interface,
+                    request: SET_LINE_CODING,
+                    value: 0,
+                    index: CDC_INTERFACE_NUM,
+                    data: &LINE_CODING,
+                },
+                MAX_TIMEOUT,
+            )
+            .await
+            .map_err(|e| Error::io(format!("CDC Set Line Coding failed: {}", e)))?;
+
+        iface
+            .control_out(
+                ControlOut {
+                    control_type: ControlType::Class,
+                    recipient: Recipient::Interface,
+                    request: SET_CONTROL_LINE_STATE,
+                    value: CONTROL_LINE_STATE,
+                    index: CDC_INTERFACE_NUM,
+                    data: &[],
+                },
+                MAX_TIMEOUT,
+            )
+            .await
+            .map_err(|e| Error::io(format!("CDC Set Control Line State failed: {}", e)))?;
+
+        log::debug!("CDC Setup complete");
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -109,15 +153,26 @@ impl MTKPort for UsbMTKPort {
 
         self.select_endpoints(&iface)?;
 
+        // Seem to be a windows bug
+        #[cfg(windows)]
+        let tr = 1;
+
+        #[cfg(not(windows))]
+        let tr = 8;
+
         let ep_in = iface.endpoint::<Bulk, In>(self.ep_in)?;
-        let rdr = ep_in.reader(BULK_IN_SZ).with_num_transfers(8).with_read_timeout(MAX_TIMEOUT);
+        let rdr = ep_in.reader(BULK_IN_SZ).with_num_transfers(tr).with_read_timeout(MAX_TIMEOUT);
         let ep_out = iface.endpoint::<Bulk, Out>(self.ep_out)?;
-        let wr = ep_out.writer(BULK_OUT_SZ).with_num_transfers(8).with_write_timeout(MAX_TIMEOUT);
+        let wr = ep_out.writer(BULK_OUT_SZ).with_num_transfers(tr).with_write_timeout(MAX_TIMEOUT);
 
         self.reader = Some(rdr);
         self.writer = Some(wr);
         self.interface = Some(iface);
         self.ctrl_interface = Some(ctrl_iface);
+
+        #[cfg(windows)]
+        self.setup_cdc().await?;
+
         self.is_open = true;
 
         Ok(())
