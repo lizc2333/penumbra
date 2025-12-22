@@ -32,6 +32,7 @@
       packages = [
         rustToolchain
         pkgs.rust-analyzer
+        pkgs.nsis
       ];
 
       buildInputs = with pkgs; [
