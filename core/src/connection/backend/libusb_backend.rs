@@ -144,12 +144,10 @@ impl UsbMTKPort {
         let descriptor = device.device_descriptor().ok()?;
         let (vid, pid) = (descriptor.vendor_id(), descriptor.product_id());
 
-        let connection_type = match (vid, pid) {
-            (0x0E8D, 0x0003) => ConnectionType::Brom,
-            (0x0E8D, 0x2000) => ConnectionType::Preloader,
-            (0x0E8D, 0x2001) => ConnectionType::Da,
-            _ => return None,
-        };
+        let connection_type = KNOWN_PORTS
+            .iter()
+            .find(|&&(kvid, kpid, _)| kvid == vid && kpid == pid)
+            .map(|&(_, _, ct)| ct)?;
 
         let baudrate = match connection_type {
             ConnectionType::Brom => 115_200,
