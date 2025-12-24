@@ -10,7 +10,10 @@ It provides flashing and readback capabilities, as well as bootloader unlocking 
 ## Requirements
 
 * On Windows, you'll need to install Mediatek Drivers.
-* On Linux you'll need to install `libudev` and add your user to the `dialout` group.
+> ⚠️ IMPORTANT NOTICE
+> Penumbra on Windows is currently half broken, and only occasionally works by replacing the MediaTek drivers with WinUSB using Zadig. Please, do not open a new issue in case of problems with Windows, but rather leave a comment on [#27](https://github.com/shomykohai/penumbra/issues/27).
+> It is strongly suggested to use Linux instead, where Penumbra has been tested more and confirmed to work.
+* On Linux you'll need to install `libudev` and add your user to the `dialout` group. In case Penumbra doesn't recognize the device, run with sudo or allow access to the device with udev rules.
 
 ## Usage
 
