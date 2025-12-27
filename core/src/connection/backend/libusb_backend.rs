@@ -405,7 +405,7 @@ impl MTKPort for UsbMTKPort {
         data: &[u8],
     ) -> Result<()> {
         let handle = self.handle.clone();
-        let data = data.to_vec(); // make it owned for blocking closure
+        let data = data.to_vec();
 
         spawn_blocking(move || {
             let locked = handle.blocking_lock();
@@ -419,18 +419,12 @@ impl MTKPort for UsbMTKPort {
                 _ => Recipient::Other,
             };
 
-            let request_type_rusb = rusb::request_type(direction, RequestType::Vendor, recipient);
-
             locked
-                .write_control(
-                    request_type_rusb,
-                    request,
-                    value,
-                    index,
-                    &data,
-                    Duration::from_secs(1),
-                )
-                .map_err(|e| Error::io(format!("Control OUT transfer failed: {:?}", e)))?;
+                .write_control(request_type, request, value, index, &data, Duration::from_secs(1))
+                .map_err(|e| {
+                    error!("Control OUT transfer error: {:?}", e);
+                    Error::io(format!("Control OUT transfer failed: {:?}", e))
+                })?;
 
             Ok(())
         })
@@ -461,18 +455,12 @@ impl MTKPort for UsbMTKPort {
                 _ => Recipient::Other,
             };
 
-            let request_type_rusb = rusb::request_type(direction, RequestType::Vendor, recipient);
-
             let n = locked
-                .read_control(
-                    request_type_rusb,
-                    request,
-                    value,
-                    index,
-                    &mut buf,
-                    Duration::from_secs(1),
-                )
-                .map_err(|e| Error::io(format!("Control IN transfer failed: {:?}", e)))?;
+                .read_control(request_type, request, value, index, &mut buf, Duration::from_secs(1))
+                .map_err(|e| {
+                    error!("Control IN transfer error: {:?}", e);
+                    Error::io(format!("Control IN transfer failed: {:?}", e))
+                })?;
 
             buf.truncate(n);
             Ok(buf)
