@@ -100,6 +100,14 @@ impl Storage for EmmcStorage {
     fn get_pl_part2(&self) -> PartitionKind {
         PartitionKind::Emmc(EmmcPartition::Boot2)
     }
+
+    fn get_pl1_size(&self) -> u64 {
+        self.info.boot1_size
+    }
+
+    fn get_pl2_size(&self) -> u64 {
+        self.info.boot2_size
+    }
 }
 
 impl EmmcStorage {

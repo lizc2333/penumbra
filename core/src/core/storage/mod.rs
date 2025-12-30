@@ -54,4 +54,11 @@ pub trait Storage: Send + Sync {
     fn get_user_part(&self) -> PartitionKind;
     fn get_pl_part1(&self) -> PartitionKind;
     fn get_pl_part2(&self) -> PartitionKind;
+
+    fn get_pl1_size(&self) -> u64;
+    fn get_pl2_size(&self) -> u64;
+}
+
+pub fn is_pl_part(name: &str) -> bool {
+    matches!(name, "preloader" | "preloader_backup")
 }

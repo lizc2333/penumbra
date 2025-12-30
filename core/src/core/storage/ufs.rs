@@ -70,6 +70,14 @@ impl Storage for UfsStorage {
     fn get_pl_part2(&self) -> PartitionKind {
         PartitionKind::Ufs(UfsPartition::Lu1)
     }
+
+    fn get_pl1_size(&self) -> u64 {
+        self.info.lu0_size
+    }
+
+    fn get_pl2_size(&self) -> u64 {
+        self.info.lu1_size
+    }
 }
 
 impl UfsStorage {
