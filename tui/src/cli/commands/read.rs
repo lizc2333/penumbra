@@ -49,8 +49,7 @@ impl MtkCommand for ReadArgs {
         state.connection_type = CONN_DA;
         state.flash_mode = 1;
 
-        let partitions = dev.dev_info.get_partition(&self.partition).await;
-        let partition = match partitions {
+        let partition = match dev.dev_info.get_partition(&self.partition).await {
             Some(p) => p,
             None => {
                 info!("Partition '{}' not found on device.", self.partition);

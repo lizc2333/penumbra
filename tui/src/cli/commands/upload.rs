@@ -9,7 +9,6 @@ use async_trait::async_trait;
 use clap::Args;
 use log::info;
 use penumbra::Device;
-use penumbra::core::storage::Partition;
 use tokio::fs::File;
 use tokio::io::BufWriter;
 
@@ -51,28 +50,7 @@ impl MtkCommand for UploadArgs {
         state.connection_type = CONN_DA;
         state.flash_mode = 1;
 
-        let storage = dev
-            .dev_info
-            .storage()
-            .await
-            .ok_or_else(|| anyhow::anyhow!("Failed to get storage information from device."))?;
-
-        let pl_part = storage.get_pl_part1();
-
-        let preloader = Partition {
-            name: "preloader".to_string(),
-            size: 0x400000, // 4MB,
-            address: 0,
-            kind: pl_part,
-        };
-
-        let mut partitions = dev.get_partitions().await;
-        partitions.push(preloader);
-        dev.dev_info.set_partitions(partitions).await;
-
-        let partitions = dev.dev_info.get_partition(&self.partition).await;
-
-        let partition = match partitions {
+        let partition = match dev.dev_info.get_partition(&self.partition).await {
             Some(p) => p,
             None => {
                 info!("Partition '{}' not found on device.", self.partition);

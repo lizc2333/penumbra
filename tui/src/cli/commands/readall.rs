@@ -9,7 +9,6 @@ use async_trait::async_trait;
 use clap::Args;
 use log::info;
 use penumbra::Device;
-use penumbra::core::storage::Partition;
 use tokio::fs::{File, create_dir_all, read_dir};
 use tokio::io::{AsyncWriteExt, BufWriter};
 
@@ -67,25 +66,10 @@ impl MtkCommand for ReadAllArgs {
         state.connection_type = CONN_DA;
         state.flash_mode = 1;
 
-        let mut partitions = dev.get_partitions().await;
+        let partitions = dev.get_partitions().await;
         if partitions.is_empty() {
             info!("No partitions found on device.");
             return Ok(());
-        }
-
-        let storage = dev.dev_info.storage().await.ok_or(anyhow!("Storage not available"))?;
-
-        let pl_part = storage.get_pl_part1();
-
-        if !partitions.iter().any(|p| p.name == "preloader")
-            && !self.skip.contains(&"preloader".to_string())
-        {
-            partitions.push(Partition {
-                name: "preloader".to_string(),
-                size: 0x400000, // 4MB
-                address: 0x0,
-                kind: pl_part,
-            });
         }
 
         let proto = dev.get_protocol().ok_or(anyhow!("Failed to get device protocol"))?;
