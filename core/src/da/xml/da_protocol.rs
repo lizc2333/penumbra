@@ -264,6 +264,14 @@ impl DAProtocol for Xml {
         write_seccfg(self, &mut seccfg).await
     }
 
+    async fn peek(
+        &mut self,
+        addr: u32,
+        length: usize,
+        writer: &mut (dyn AsyncWrite + Unpin + Send),
+        progress: &mut (dyn FnMut(usize, usize) + Send),
+    ) -> Result<()> {
+        exts::peek(self, addr, length, writer, progress).await
     }
 
     fn patch_da(&mut self) -> Option<DA> {

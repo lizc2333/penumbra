@@ -553,6 +553,19 @@ impl Device {
         let protocol = self.protocol.as_mut().unwrap();
         protocol.set_seccfg_lock_state(lock_state).await
     }
+
+    pub async fn peek(
+        &mut self,
+        addr: u32,
+        size: usize,
+        writer: &mut (dyn AsyncWrite + Unpin + Send),
+        progress: &mut (dyn FnMut(usize, usize) + Send),
+    ) -> Result<()> {
+        self.ensure_da_mode().await?;
+
+        let protocol = self.protocol.as_mut().unwrap();
+        protocol.peek(addr, size, writer, progress).await
+    }
 }
 
 #[async_trait::async_trait]

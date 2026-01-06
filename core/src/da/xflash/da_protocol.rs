@@ -333,6 +333,17 @@ impl DAProtocol for XFlash {
         write_seccfg(self, &mut seccfg).await
     }
 
+    async fn peek(
+        &mut self,
+        _addr: u32,
+        _length: usize,
+        _writer: &mut (dyn AsyncWrite + Unpin + Send),
+        _progress: &mut (dyn FnMut(usize, usize) + Send),
+    ) -> Result<()> {
+        // TODO: Rewrite V5 extensions, this is currently broken with current extensions
+        todo!()
+    }
+
     fn patch_da(&mut self) -> Option<DA> {
         patch::patch_da(self).ok()
     }

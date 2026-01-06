@@ -74,6 +74,13 @@ pub trait DAProtocol: Send {
     // Memory
     async fn read32(&mut self, addr: u32) -> Result<u32>;
     async fn write32(&mut self, addr: u32, value: u32) -> Result<()>;
+    async fn peek(
+        &mut self,
+        addr: u32,
+        length: usize,
+        writer: &mut (dyn AsyncWrite + Unpin + Send),
+        progress: &mut (dyn FnMut(usize, usize) + Send),
+    ) -> Result<()>;
 
     async fn get_usb_speed(&mut self) -> Result<u32>;
     // fn set_usb_speed(&mut self, speed: u32) -> Result<(), Error>;
