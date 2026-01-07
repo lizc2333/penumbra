@@ -78,6 +78,10 @@ impl Storage for UfsStorage {
     fn get_pl2_size(&self) -> u64 {
         self.info.lu1_size
     }
+
+    fn get_user_size(&self) -> u64 {
+        self.info.lu2_size
+    }
 }
 
 impl UfsStorage {

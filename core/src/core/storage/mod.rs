@@ -57,6 +57,7 @@ pub trait Storage: Send + Sync {
 
     fn get_pl1_size(&self) -> u64;
     fn get_pl2_size(&self) -> u64;
+    fn get_user_size(&self) -> u64;
 }
 
 pub fn is_pl_part(name: &str) -> bool {

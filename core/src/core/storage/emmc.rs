@@ -108,6 +108,10 @@ impl Storage for EmmcStorage {
     fn get_pl2_size(&self) -> u64 {
         self.info.boot2_size
     }
+
+    fn get_user_size(&self) -> u64 {
+        self.info.user_size
+    }
 }
 
 impl EmmcStorage {
