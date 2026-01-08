@@ -138,6 +138,7 @@ impl XFlash {
         info!("[Penumbra] Received DA1 sync signal.");
 
         self.handle_emi().await?;
+        self.devctrl(Cmd::SetChecksumLevel, Some(&[&0u32.to_le_bytes()])).await?;
 
         Ok(true)
     }
