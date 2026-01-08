@@ -15,12 +15,14 @@ use crate::connection::port::ConnectionType;
 use crate::core::devinfo::DeviceInfo;
 use crate::core::seccfg::LockFlag;
 use crate::core::storage::{Partition, PartitionKind, Storage, StorageType, parse_gpt};
-use crate::da::protocol::DAProtocol;
+use crate::da::protocol::{BootMode, DAProtocol};
 use crate::da::xml::cmds::{
     BootTo,
     HOST_CMDS,
     HostSupportedCommands,
     NotifyInitHw,
+    Reboot,
+    SetBootMode,
     XmlCmdLifetime,
 };
 use crate::da::xml::flash;
@@ -145,6 +147,25 @@ impl DAProtocol for Xml {
     /// We don't need it for XML DA
     async fn get_status(&mut self) -> Result<u32> {
         Ok(0)
+    }
+
+    async fn shutdown(&mut self) -> Result<()> {
+        match xmlcmd_e!(self, Reboot, "IMMEDIATE".to_string()) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(Error::proto(format!("Failed to shutdown device: {}", e))),
+        }
+    }
+
+    async fn reboot(&mut self, bootmode: BootMode) -> Result<()> {
+        match bootmode {
+            BootMode::Normal | BootMode::HomeScreen => self.shutdown().await?,
+            mode => {
+                let xml_mode = mode.to_text().unwrap();
+                xmlcmd_e!(self, SetBootMode, xml_mode.to_string(), "USB", "ON", "ON")?;
+            }
+        }
+
+        Ok(())
     }
 
     async fn read_flash(

@@ -15,6 +15,7 @@ use crate::connection::port::ConnectionType;
 use crate::core::devinfo::DeviceInfo;
 use crate::core::seccfg::LockFlag;
 use crate::core::storage::{Partition, PartitionKind, Storage, StorageType, parse_gpt};
+use crate::da::protocol::BootMode;
 use crate::da::xflash::cmds::*;
 #[cfg(not(feature = "no_exploits"))]
 use crate::da::xflash::exts::{read32_ext, write32_ext};
@@ -182,6 +183,64 @@ impl DAProtocol for XFlash {
 
     async fn send(&mut self, data: &[u8]) -> Result<bool> {
         self.send_data(&[data]).await
+    }
+
+    async fn shutdown(&mut self) -> Result<()> {
+        self.send_cmd(Cmd::Shutdown).await?;
+
+        let params: [u32; 7] = [
+            0, // is_dev_reboot (0 = shutdown)
+            0, // timeout_ms (unused when not rebooting)
+            0, // async
+            0, // bootup
+            0, // dlbit
+            0, // bNotResetRTCTime (0 = reset RTC)
+            0, // bNotDisconnectUSB (0 = disconnect USB)
+        ];
+
+        let mut buf = Vec::with_capacity(28);
+        for v in params {
+            buf.extend_from_slice(&v.to_le_bytes());
+        }
+
+        info!("Shutting down device...");
+
+        self.send(&buf).await?;
+
+        self.conn.port.close().await.ok();
+        Ok(())
+    }
+
+    async fn reboot(&mut self, bootmode: BootMode) -> Result<()> {
+        self.send_cmd(Cmd::Shutdown).await?;
+
+        let bootup = match bootmode {
+            BootMode::Normal => 0,
+            BootMode::HomeScreen => 1,
+            BootMode::Fastboot => 2,
+            _ => 0,
+        };
+
+        let params: [u32; 7] = [
+            1, // is_dev_reboot
+            0, // timeout_ms (0 = default, WDT decides)
+            0, // async
+            bootup, 0, // dlbit
+            0, // bNotResetRTCTime
+            0, // bNotDisconnectUSB
+        ];
+
+        info!("Rebooting device into {:?} mode...", bootmode);
+
+        let mut buf = Vec::with_capacity(28);
+        for v in params {
+            buf.extend_from_slice(&v.to_le_bytes());
+        }
+
+        self.send(&buf).await?;
+
+        self.conn.port.close().await.ok();
+        Ok(())
     }
 
     async fn read_flash(

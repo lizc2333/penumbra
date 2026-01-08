@@ -122,6 +122,24 @@ pub struct ErasePartition {
     partition: String,
 }
 
+#[derive(XmlCommand)]
+pub struct Reboot {
+    #[xml(tag = "action")]
+    action: String,
+}
+
+#[derive(XmlCommand)]
+pub struct SetBootMode {
+    #[xml(tag = "mode")]
+    mode: String,
+    #[xml(tag = "connect_type")]
+    connect_type: String,
+    #[xml(tag = "mobile_log")]
+    mobile_log: String,
+    #[xml(tag = "adb")]
+    adb: String,
+}
+
 pub fn create_cmd<C: XmlCommand>(cmd: &C) -> String {
     let mut xml = format!(
         r#"<?xml version="1.0" encoding="utf-8"?><da><version>{}</version><command>CMD:{}</command>"#,

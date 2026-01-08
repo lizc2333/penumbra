@@ -14,6 +14,26 @@ use crate::core::storage::{Partition, PartitionKind, Storage, StorageType};
 use crate::da::{DA, DAEntryRegion};
 use crate::error::Result;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BootMode {
+    Normal,
+    HomeScreen,
+    Fastboot,
+    Test,
+    Meta,
+}
+
+impl BootMode {
+    pub fn to_text(&self) -> Option<&'static str> {
+        match self {
+            BootMode::Fastboot => Some("FASTBOOT"),
+            BootMode::Meta => Some("META"),
+            BootMode::Test => Some("ANDROID-TEST-MODE"),
+            BootMode::Normal | BootMode::HomeScreen => None,
+        }
+    }
+}
+
 #[async_trait::async_trait]
 pub trait DAProtocol: Send {
     // Main helpers
@@ -22,6 +42,8 @@ pub trait DAProtocol: Send {
     async fn send(&mut self, data: &[u8]) -> Result<bool>;
     async fn send_data(&mut self, data: &[&[u8]]) -> Result<bool>;
     async fn get_status(&mut self) -> Result<u32>;
+    async fn shutdown(&mut self) -> Result<()>;
+    async fn reboot(&mut self, bootmode: BootMode) -> Result<()>;
     // FLASH operations
     // fn read_partition(&mut self, name: &str) -> Result<Vec<u8>, Error>;
     async fn read_flash(

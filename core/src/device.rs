@@ -14,6 +14,7 @@ use crate::core::crypto::config::CryptoIO;
 use crate::core::devinfo::{DevInfoData, DeviceInfo};
 use crate::core::seccfg::LockFlag;
 use crate::core::storage::{Partition, PartitionKind};
+use crate::da::protocol::BootMode;
 use crate::da::{DAFile, DAProtocol, DAType, XFlash, Xml};
 use crate::error::{Error, Result};
 
@@ -545,6 +546,20 @@ impl Device {
 
         let protocol = self.protocol.as_mut().unwrap();
         protocol.format(partition.to_string(), progress).await
+    }
+
+    pub async fn shutdown(&mut self) -> Result<()> {
+        self.ensure_da_mode().await?;
+
+        let protocol = self.protocol.as_mut().unwrap();
+        protocol.shutdown().await
+    }
+
+    pub async fn reboot(&mut self, bootmode: BootMode) -> Result<()> {
+        self.ensure_da_mode().await?;
+
+        let protocol = self.protocol.as_mut().unwrap();
+        protocol.reboot(bootmode).await
     }
 
     #[cfg(not(feature = "no_exploits"))]
