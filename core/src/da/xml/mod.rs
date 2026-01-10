@@ -15,4 +15,5 @@ mod patch;
 mod sec;
 mod storage;
 mod xml_lib;
+pub use cmds::*;
 pub use xml_lib::Xml;

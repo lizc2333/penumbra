@@ -30,7 +30,7 @@ pub struct XFlash {
 }
 
 impl XFlash {
-    pub(super) async fn send_cmd(&mut self, cmd: Cmd) -> Result<bool> {
+    pub async fn send_cmd(&mut self, cmd: Cmd) -> Result<bool> {
         let cmd_bytes = (cmd as u32).to_le_bytes();
         debug!("[TX] Sending Command: 0x{:08X}", cmd as u32);
         self.send(&cmd_bytes[..]).await
@@ -52,7 +52,7 @@ impl XFlash {
     // Note: When called with multiple params, this function sends data only and does not read any
     // response. For that, call read_data separately and check status manually.
     // This is to accomodate the protocol, while also not breaking read_data for other operations.
-    pub(super) async fn devctrl(&mut self, cmd: Cmd, params: Option<&[&[u8]]>) -> Result<Vec<u8>> {
+    pub async fn devctrl(&mut self, cmd: Cmd, params: Option<&[&[u8]]>) -> Result<Vec<u8>> {
         self.send_cmd(Cmd::DeviceCtrl).await?;
         self.send_cmd(cmd).await?;
 
@@ -71,7 +71,7 @@ impl XFlash {
     // call status_ok!() macro manually.
     // This function only reads the data, and cannot be used to read status,
     // or functions like read_flash will fail.
-    pub(super) async fn read_data(&mut self) -> Result<Vec<u8>> {
+    pub async fn read_data(&mut self) -> Result<Vec<u8>> {
         let mut hdr = [0u8; 12];
         self.conn.port.read_exact(&mut hdr).await?;
 

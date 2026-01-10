@@ -58,7 +58,7 @@ impl Xml {
     }
 
     /// Reads data of arbitrary length taken from the header sent by the device.
-    pub(super) async fn read_data(&mut self) -> Result<Vec<u8>> {
+    pub async fn read_data(&mut self) -> Result<Vec<u8>> {
         let mut hdr = [0u8; 12];
         self.conn.port.read_exact(&mut hdr).await?;
 
@@ -148,7 +148,7 @@ impl Xml {
     }
 
     /// Acknowledges the lifetime of an XML command (CMD:START or CMD:END).
-    pub(super) async fn lifetime_ack(&mut self, lifetime: XmlCmdLifetime) -> Result<bool> {
+    pub async fn lifetime_ack(&mut self, lifetime: XmlCmdLifetime) -> Result<bool> {
         let is_valid = self.check_lifetime(lifetime).await?;
         if !is_valid {
             return Err(Error::io("Invalid lifetime acknowledgment"));
@@ -157,7 +157,7 @@ impl Xml {
     }
 
     /// Sends an XML command to the device.
-    pub(super) async fn send_cmd<C: XmlCommand>(&mut self, cmd: &C) -> Result<bool> {
+    pub async fn send_cmd<C: XmlCommand>(&mut self, cmd: &C) -> Result<bool> {
         let xml_str = create_cmd(cmd);
         let xml_bytes = xml_str.as_bytes();
 
@@ -180,7 +180,7 @@ impl Xml {
     }
 
     /// Sends a file to the device.
-    pub(super) async fn download_file<R>(
+    pub async fn download_file<R>(
         &mut self,
         size: usize,
         mut reader: R,
@@ -242,7 +242,7 @@ impl Xml {
     }
 
     /// Receives a file from the device.
-    pub(super) async fn upload_file<W>(
+    pub async fn upload_file<W>(
         &mut self,
         mut writer: W,
         progress: &mut (dyn FnMut(usize, usize) + Send),
@@ -306,7 +306,7 @@ impl Xml {
     }
 
     /// Waits for the device to finish a certain operation, reporting progress.
-    pub(super) async fn progress_report(
+    pub async fn progress_report(
         &mut self,
         progress: &mut (dyn FnMut(usize, usize) + Send),
     ) -> Result<bool> {
@@ -352,7 +352,7 @@ impl Xml {
     /// This is used in SPFT for asking the tool to do stuff like creating directories,
     /// checking file existence, etc.
     /// We don't need it.
-    pub(super) async fn file_system_op(&mut self, op: FileSystemOp) -> Result<bool> {
+    pub async fn file_system_op(&mut self, op: FileSystemOp) -> Result<bool> {
         let resp = self.read_data().await?;
         let resp_string = String::from_utf8_lossy(&resp);
 
@@ -416,7 +416,7 @@ impl Xml {
         None
     }
 
-    pub(super) async fn get_upload_file_resp(&mut self) -> Result<String> {
+    pub async fn get_upload_file_resp(&mut self) -> Result<String> {
         let mut buffer = Vec::new();
         let mut writer = BufWriter::new(&mut buffer);
         let mut progress = |_, _| {};
