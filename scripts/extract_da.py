@@ -3,8 +3,10 @@
 # SPDX-FileCopyrightText: 2025 Shomy
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
-from parse_da import DAFile, DAType, DA, DAEntryRegion
 from typing import Set
+
+from parse_da import DA, DAEntryRegion, DAFile, DAType
+
 
 def parse_hwcodes(arg: str) -> Set[int]:
     hwcodes: Set[int] = set()
@@ -17,8 +19,10 @@ def parse_hwcodes(arg: str) -> Set[int]:
 
     return hwcodes
 
+
 if __name__ == "__main__":
     import sys
+
     if len(sys.argv) not in (2, 3):
         print(f"Usage: {sys.argv[0]} <da_file>")
         sys.exit(1)
@@ -44,22 +48,25 @@ if __name__ == "__main__":
         da2 = da.get_da2()
         hw_code = hex(hw_code)
 
+        da1_data = da1.data[: -da1.sig_len] if da1.sig_len > 0 else da1.data
+        da2_data = da2.data[: -da2.sig_len] if da2.sig_len > 0 else da2.data
+
         with open(f"da1_{hw_code}.bin", "wb") as f:
-            f.write(da1.data[:-da1.sig_len])
-            print(f"Wrote da1.bin, size: {len(da1.data[:-da1.sig_len])} bytes")
+            f.write(da1_data)
+            print(f"Wrote da1.bin, size: {len(da1_data)} bytes")
 
         with open(f"da2_{hw_code}.bin", "wb") as f:
-            f.write(da2.data[:-da2.sig_len])
-            print(f"Wrote da2.bin, size: {len(da2.data[:-da2.sig_len])} bytes")
+            f.write(da2_data)
+            print(f"Wrote da2.bin, size: {len(da2_data)} bytes")
 
         if da1.sig_len > 0:
             with open(f"da1_{hw_code}.sig", "wb") as f:
-                f.write(da1.data[-da1.sig_len:])
+                f.write(da1.data[-da1.sig_len :])
                 print(f"Wrote da1.sig, size: {da1.sig_len} bytes")
 
         if da2.sig_len > 0:
             with open(f"da2_{hw_code}.sig", "wb") as f:
-                f.write(da2.data[-da2.sig_len:])
+                f.write(da2.data[-da2.sig_len :])
                 print(f"Wrote da2.sig, size: {da2.sig_len} bytes")
 
         print(f"Extracted DA for hw_code: {hw_code}")
