@@ -120,7 +120,7 @@ impl Xml {
     /// Sends an acknowledgment to the device.
     /// By default, it sends "OK\0".
     /// If a value is provided, it sends "OK@0x{value}\0".
-    pub(super) async fn ack(&mut self, value: Option<String>) -> Result<bool> {
+    pub async fn ack(&mut self, value: Option<String>) -> Result<bool> {
         let mut ack_str: String = "OK\0".to_string();
         if let Some(v) = value {
             ack_str = format!("OK@0x{v}\0");
@@ -131,7 +131,7 @@ impl Xml {
     }
 
     /// Reads an acknowledgment from the device.
-    pub(super) async fn read_ack(&mut self) -> Result<bool> {
+    pub async fn read_ack(&mut self) -> Result<bool> {
         let resp = self.read_data().await?;
         let s = String::from_utf8_lossy(&resp);
 
