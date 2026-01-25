@@ -438,4 +438,8 @@ impl DAProtocol for XFlash {
     fn get_devinfo(&self) -> &DeviceInfo {
         &self.dev_info
     }
+
+    fn get_da(&self) -> &DA {
+        &self.da
+    }
 }

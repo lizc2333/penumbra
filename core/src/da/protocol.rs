@@ -133,6 +133,7 @@ pub trait DAProtocol: DowncastSend {
 
     // DevInfo helpers
     fn get_devinfo(&self) -> &DeviceInfo;
+    fn get_da(&self) -> &DA;
 }
 
 impl_downcast!(DAProtocol);
