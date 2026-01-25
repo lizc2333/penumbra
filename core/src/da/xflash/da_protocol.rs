@@ -47,6 +47,12 @@ impl DAProtocol for XFlash {
         let sig_len = da2.sig_len as usize;
         let da2data = da2.data[..da2.data.len().saturating_sub(sig_len)].to_vec();
 
+        info!(
+            "[Penumbra] Uploading DA2 to address 0x{:08X} with size 0x{:X} bytes",
+            da2.addr,
+            da2data.len()
+        );
+
         match self.boot_to(da2.addr, &da2data).await {
             Ok(true) => {
                 info!("[Penumbra] Successfully uploaded and executed DA2");
@@ -64,12 +70,6 @@ impl DAProtocol for XFlash {
     }
 
     async fn boot_to(&mut self, addr: u32, data: &[u8]) -> Result<bool> {
-        info!(
-            "[Penumbra] Sending BOOT_TO command to address 0x{:08X} with 0x{:X} bytes",
-            addr,
-            data.len()
-        );
-
         self.send_cmd(Cmd::BootTo).await?;
 
         // Addr (LE) | Length (LE)
@@ -82,7 +82,6 @@ impl DAProtocol for XFlash {
 
         status_any!(self, 0, Cmd::SyncSignal as u32);
 
-        info!("[Penumbra] Successfully booted to DA2");
         Ok(true)
     }
 
