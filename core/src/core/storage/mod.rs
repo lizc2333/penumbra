@@ -3,7 +3,7 @@ pub mod gpt;
 pub mod ufs;
 
 pub use emmc::EmmcPartition;
-pub use gpt::parse_gpt;
+pub use gpt::Gpt;
 pub use ufs::UfsPartition;
 
 #[repr(u32)]

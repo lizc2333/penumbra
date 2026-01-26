@@ -13,7 +13,7 @@ use crate::connection::Connection;
 use crate::connection::port::ConnectionType;
 use crate::core::devinfo::DeviceInfo;
 use crate::core::seccfg::LockFlag;
-use crate::core::storage::{Partition, PartitionKind, Storage, StorageType, parse_gpt};
+use crate::core::storage::{Gpt, Partition, PartitionKind, Storage, StorageType};
 use crate::da::protocol::BootMode;
 use crate::da::xflash::cmds::*;
 #[cfg(not(feature = "no_exploits"))]
@@ -340,24 +340,34 @@ impl DAProtocol for XFlash {
         let user_size = storage.get_user_size() as usize;
         let gpt_size = 32 * 1024; // TODO: Change this when adding NAND support and PMT
 
-        let mut partitions = Vec::<Partition>::new();
+        let mut partitions = vec![
+            Partition::new("preloader", pl1_size, 0, pl_part1),
+            Partition::new("preloader_backup", pl2_size, 0, pl_part2),
+            Partition::new("PGPT", gpt_size, 0, user_part),
+        ];
 
-        let preloader = Partition::new("preloader", pl1_size, 0, pl_part1);
-        let preloader_backup = Partition::new("preloader_backup", pl2_size, 0, pl_part2);
-        let pgpt = Partition::new("PGPT", gpt_size, 0, user_part);
         let sgpt = Partition::new("SGPT", gpt_size, user_size as u64 - gpt_size as u64, user_part);
-        partitions.push(preloader);
-        partitions.push(preloader_backup);
-        partitions.push(pgpt);
 
         let mut progress = |_, _| {};
-        let mut pgpt_data = Vec::new();
-        let mut cursor = Cursor::new(&mut pgpt_data);
-        self.upload("PGPT".into(), &mut cursor, &mut progress).await.ok();
-        self.send(&[0u8; 4]).await.ok();
 
-        let gpt_parts = parse_gpt(&pgpt_data, storage_type).unwrap_or_default();
-        partitions.extend(gpt_parts);
+        let mut pgpt_data = Vec::new();
+        let mut pgpt_cursor = Cursor::new(&mut pgpt_data);
+        self.upload("PGPT".into(), &mut pgpt_cursor, &mut progress).await.ok();
+        self.send(&[0u8; 4]).await.ok();
+        let parsed_gpt_parts =
+            Gpt::parse(&pgpt_data, storage_type).map(|g| g.partitions()).unwrap_or_default();
+
+        let mut gpt_parts = if !parsed_gpt_parts.is_empty() {
+            parsed_gpt_parts
+        } else {
+            let mut sgpt_data = Vec::new();
+            let mut sgpt_cursor = Cursor::new(&mut sgpt_data);
+            self.upload("SGPT".into(), &mut sgpt_cursor, &mut progress).await.ok();
+            self.send(&[0u8; 4]).await.ok();
+            Gpt::parse(&sgpt_data, storage_type).map(|g| g.partitions()).unwrap_or_default()
+        };
+
+        partitions.append(&mut gpt_parts);
         partitions.push(sgpt);
 
         partitions
