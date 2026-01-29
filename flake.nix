@@ -18,7 +18,10 @@
     };
 
     rustToolchain = pkgs.rust-bin.nightly.latest.default;
-    naerskLib = pkgs.callPackage naersk {inherit rustToolchain;};
+    naerskLib = pkgs.callPackage naersk {
+      rustc = rustToolchain;
+      cargo = rustToolchain;
+    };
   in {
     packages.${system}.default = naerskLib.buildPackage {
       src = ./.;
