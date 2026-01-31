@@ -72,11 +72,8 @@ where
         xml.progress_report(&mut mock_progress).await?;
     }
 
-    // Enabled only on DA with security on?
-    if xml.dev_info.sbc_enabled().await {
-        xml.file_system_op(FileSystemOp::Exists).await?;
-        xml.file_system_op(FileSystemOp::Exists).await?;
-    }
+    xml.file_system_op(FileSystemOp::Exists).await?;
+    xml.file_system_op(FileSystemOp::Exists).await?;
 
     xml.download_file(size, &mut reader, &mut progress).await?;
     xml.lifetime_ack(XmlCmdLifetime::CmdEnd).await?;
