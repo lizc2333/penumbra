@@ -208,6 +208,7 @@ impl Xml {
 
         let cmd: String = get_tag(&resp_string, "command")?;
         if cmd != "CMD:DOWNLOAD-FILE" {
+            debug!("Invalid xml response for CMD:DOWNLOAD-FILE: {}", resp_string);
             return Err(Error::proto("Expected CMD:DOWNLOAD-FILE"));
         }
 
@@ -267,6 +268,7 @@ impl Xml {
 
         let cmd: String = get_tag(&resp_string, "command")?;
         if cmd != "CMD:UPLOAD-FILE" {
+            debug!("Invalid xml response for CMD:UPLOAD-FILE: {}", resp_string);
             return Err(Error::proto("Expected CMD:UPLOAD-FILE"));
         }
 
