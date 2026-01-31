@@ -13,7 +13,7 @@ use penumbra::Device;
 use penumbra::da::XFlash;
 use penumbra::da::xflash::flash::set_rsc_info;
 use tokio::fs::{File, metadata};
-use tokio::io::{AsyncRead, AsyncReadExt, BufReader};
+use tokio::io::BufReader;
 
 use crate::cli::MtkCommand;
 use crate::cli::common::{CONN_DA, CommandMetadata, DaArgs};
@@ -60,7 +60,7 @@ impl MtkCommand for RscFlashArgs {
         }
 
         let proto = dev.get_protocol().unwrap();
-        let mut xflash = proto
+        let xflash = proto
             .as_any_mut()
             .downcast_mut::<XFlash>()
             .ok_or_else(|| anyhow::anyhow!("Current protocol is not XFlash"))?;
