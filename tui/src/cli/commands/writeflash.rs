@@ -28,7 +28,7 @@ pub struct WriteArgs {
 
 impl CommandMetadata for WriteArgs {
     fn visible_aliases() -> &'static [&'static str] {
-        &["w"]
+        &["wf"]
     }
 
     fn about() -> &'static str {

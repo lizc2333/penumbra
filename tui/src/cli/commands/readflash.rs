@@ -29,7 +29,7 @@ pub struct ReadArgs {
 
 impl CommandMetadata for ReadArgs {
     fn visible_aliases() -> &'static [&'static str] {
-        &["r"]
+        &["rf"]
     }
 
     fn about() -> &'static str {

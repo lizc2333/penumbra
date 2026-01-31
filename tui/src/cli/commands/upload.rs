@@ -29,7 +29,7 @@ pub struct UploadArgs {
 
 impl CommandMetadata for UploadArgs {
     fn visible_aliases() -> &'static [&'static str] {
-        &["up"]
+        &["up", "read", "r"]
     }
 
     fn about() -> &'static str {
