@@ -73,6 +73,8 @@ impl DAProtocol for Xml {
         self.progress_report(&mut mock_progress).await?;
         self.lifetime_ack(XmlCmdLifetime::CmdEnd).await?;
 
+        self.handle_sla().await?;
+
         #[cfg(not(feature = "no_exploits"))]
         self.boot_extensions().await?;
 

@@ -4,12 +4,13 @@
 */
 use std::sync::Arc;
 
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, BufWriter};
 use tokio::time::{Duration, timeout};
 
 use crate::VERSION;
 use crate::connection::Connection;
+use crate::core::auth::{AuthManager, SignData, SignPurpose, SignRequest};
 use crate::core::devinfo::DeviceInfo;
 use crate::core::storage::Storage;
 use crate::da::xml::cmds::{
@@ -17,10 +18,13 @@ use crate::da::xml::cmds::{
     CMD_START,
     DT_PROTOCOL_FLOW,
     FileSystemOp,
+    GetSysProperty,
     HOST_CMDS,
     HostSupportedCommands,
     MAGIC,
     NotifyInitHw,
+    SecurityGetDevFwInfo,
+    SecuritySetFlashPolicy,
     SetHostInfo,
     SetRuntimeParameter,
     XmlCmdLifetime,
@@ -106,6 +110,12 @@ impl Xml {
                     XmlCmdLifetime::CmdStart => CMD_START,
                     XmlCmdLifetime::CmdEnd => CMD_END,
                 };
+
+                if data.windows(20).any(|window| window == b"<result>ERR</result>") {
+                    // We need to ack before returning, or the device will hang.
+                    self.ack(None).await?;
+                    return Ok(false);
+                }
 
                 Ok(data.windows(pattern.len()).any(|window| window == pattern))
             }
@@ -431,6 +441,70 @@ impl Xml {
         writer.flush().await?;
 
         Ok(String::from_utf8_lossy(&buffer).into_owned())
+    }
+
+    pub(super) async fn handle_sla(&mut self) -> Result<bool> {
+        xmlcmd!(self, GetSysProperty, "DA.SLA", "0")?;
+
+        let response = self.get_upload_file_resp().await?;
+        self.lifetime_ack(XmlCmdLifetime::CmdEnd).await?;
+
+        let sla_enabled = response.contains("ENABLED");
+        if !sla_enabled {
+            return Ok(true);
+        }
+
+        info!("DA SLA is enabled");
+
+        xmlcmd!(self, SecurityGetDevFwInfo, "0")?;
+        let fw_info = self.get_upload_file_resp().await?;
+        self.lifetime_ack(XmlCmdLifetime::CmdEnd).await?;
+
+        debug!("Firmware info: {}", fw_info);
+        let rnd_str = get_tag::<String>(&fw_info, "rnd")?;
+        let hrid_str = get_tag::<String>(&fw_info, "hrid")?;
+        let socid_str = get_tag::<String>(&fw_info, "socid")?;
+        let rnd = hex::decode(rnd_str).map_err(|_| Error::proto("Invalid rnd response"))?;
+        let hrid = hex::decode(hrid_str).map_err(|_| Error::proto("Invalid hrid response"))?;
+        let soc_id = hex::decode(socid_str).map_err(|_| Error::proto("Invalid socid response"))?;
+
+        let da2_data = match self.da.get_da2() {
+            Some(da2) => da2.data.clone(),
+            None => Vec::new(),
+        };
+
+        let auth = AuthManager::get();
+        let sign_data = SignData { rnd, hrid, soc_id, raw: fw_info.into() };
+        let sign_req =
+            SignRequest { data: sign_data, purpose: SignPurpose::DaSla, pubk_mod: da2_data };
+
+        let mut progress = |_, _| {};
+        if auth.can_sign(&sign_req) {
+            info!("Found signer for DA SLA!");
+            let signed_rnd = auth.sign(&sign_req).await?;
+            info!("Signed DA SLA challenge. Uploading to device...");
+
+            xmlcmd!(self, SecuritySetFlashPolicy, "Penumbra SLA challenge")?;
+            self.download_file(signed_rnd.len(), signed_rnd.as_slice(), &mut progress).await?;
+            self.lifetime_ack(XmlCmdLifetime::CmdEnd).await?;
+            info!("DA SLA signature accepted!");
+            return Ok(true);
+        }
+
+        info!("No signer available for DA SLA! Trying dummy signature...");
+        let dummy_sig = vec![0u8; 256];
+        xmlcmd!(self, SecuritySetFlashPolicy, "Penumbra Dummy SLA challenge")?;
+        self.download_file(dummy_sig.len(), dummy_sig.as_slice(), &mut progress).await?;
+        match self.lifetime_ack(XmlCmdLifetime::CmdEnd).await {
+            Ok(a) => {
+                info!("DA SLA signature accepted (dummy) {}!", a);
+                Ok(true)
+            }
+            Err(e) => {
+                error!("DA SLA signature rejected (dummy), can't proceed! {}", e);
+                Err(e)
+            }
+        }
     }
 
     #[cfg(not(feature = "no_exploits"))]

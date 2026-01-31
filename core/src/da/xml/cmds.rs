@@ -98,6 +98,28 @@ pub struct SetHostInfo {
 }
 
 #[derive(XmlCommand)]
+pub struct GetSysProperty {
+    #[xml(tag = "key")]
+    key: String,
+    #[allow(dead_code)]
+    #[xml(tag = "target_file", fmt = "MEM://0x0:0x200000")]
+    target_file: String,
+}
+
+#[derive(XmlCommand)]
+pub struct SecurityGetDevFwInfo {
+    #[allow(dead_code)]
+    #[xml(tag = "target_file", fmt = "MEM://0x0:0x200000")]
+    target_file: String,
+}
+
+#[derive(XmlCommand)]
+pub struct SecuritySetFlashPolicy {
+    #[xml(tag = "source_file")]
+    source_file: String,
+}
+
+#[derive(XmlCommand)]
 pub struct GetHwInfo {
     #[allow(dead_code)]
     #[xml(tag = "target_file", fmt = "MEM://0x0:0x200000")]
