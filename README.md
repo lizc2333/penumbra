@@ -129,6 +129,10 @@ Other learning resources I suggest are the following
 * [sprig](https://github.com/R0rt1z2/sprig)
 * [HeapB8 exploit technical writeup](https://blog.r0rt1z2.com/posts/exploiting-mediatek-datwo/)
 
+## Credits
+
+* [ChimeraTool team](https://chimeratool.com/) - heapb8 was originally reverse-engineered from ChimeraTool.
+
 ## License
 
 Penumbra is licensed under the GNU Affero General Public License v3 or later (AGPL-3.0-or-later), see [LICENSE](LICENSE) for details.
