@@ -1,24 +1,24 @@
-# 🌘 Penumbra
+<img src="./docs/content/assets/banner.svg" alt="Penumbra banner">
+
+---
 
 Penumbra is a Rust crate and tool for interacting with Mediatek devices.<br>
 It provides flashing and readback capabilities, as well as bootloader unlocking and relocking on vulnerable devices.<br>
-
-<h1  align="center">
-<img src="./docs/content/assets/antumbra-tui.png" width="1024"/>
-</h1>
 
 ## Requirements
 
 * On Windows, you'll need to install Mediatek Drivers.
 > [!WARNING]
-> Penumbra on Windows is currently half broken, and only occasionally works by replacing the MediaTek drivers with WinUSB using Zadig.<br>
+> Penumbra on Windows is currently half broken, and only occasionally works by replacing the MediaTek drivers with LibUSB using Zadig.<br>
 > Please, do not open a new issue in case of problems with Windows, but rather leave a comment on [#27](https://github.com/shomykohai/penumbra/issues/27).
 > It is strongly suggested to use Linux instead, where Penumbra has been tested more and confirmed to work.
 * On Linux you'll need to install `libudev` and add your user to the `dialout` group. In case Penumbra doesn't recognize the device, run with sudo or allow access to the device with udev rules.
 
 ## Usage
 
-Penumbra can be used both as a crate for interacting directly with a device with your own code, as well as providing a (preliminary) [TUI](tui).
+Penumbra can be used both as a crate for interacting directly with a device with your own code, as well as providing a CLI and (preliminary) [TUI](tui).
+
+For using the CLI, [read the documentation with all commands here](https://penumbra.itssho.my/Penumbra/Antumbra/CLI)
 
 For using the crate, use the device API:
 
@@ -73,18 +73,12 @@ async fn main() -> Result<()> {
 }
 ```
 
-For using the TUI, first run the executable, then:
-* Navigate using the UP and DOWN arrows
-* Select the DA in the home page pressing Enter, and select the appropriate file
-* After selecting the DA, go on `Enter DA mode` and press `Enter`
-* Now connect the device
-* Enjoy!
-
 ### Debug logs
 
 Penumbra is still in early development, thus it can break quite easily.
 If so, you can open an issue attaching debug logs.<br>
 To get debug logs, run `antumbra` with the `-v` flag. A file called `antumbra.log` will be created in the current directory.
+This will also enable UART debug logging. If possible, attach UART logs too.
 
 Note: Penumbra currently supports both V5 (XFlash) and V6 (XML) devices. Issues reporting incompatibility with other chipset will be ignored until broader support is added.
 
@@ -92,16 +86,7 @@ Note: Penumbra currently supports both V5 (XFlash) and V6 (XML) devices. Issues 
 
 For contributing, you'll first need to setup a development environment.
 
-If you use Nix, you can just run `nix develop` to enter the development shell.<br>
-On any other distribution, you'll need to install the following dependencies:
-
-* libudev-dev
-* Rust toolchain
-* Rust analyzer
-* rustfmt
-* glib
-* pkg-config
-* systemd-dev
+Read on how to setup a dev environment and how to get started [here](CONTRIBUTING.md)
 
 ### Current Roadmap
 
@@ -109,11 +94,11 @@ Core:
 * [x] Add UFS support
 * [x] Dynamically determine SEJ base (for more chipsets support)
 * [x] Build DA extensions from source
-* [ ] Limit extensions only commands when exts are not added to avoid timeouts
+* [x] Limit extensions only commands when exts are not added to avoid timeouts
 * [x] Add a way to restore state
 * [x] Clean up duplicated code
 * [x] Add support for BROM mode (and setup DRAM)
-* [ ] Add support for DA SLA and preloader auth
+* [x] Add support for DA SLA and preloader auth
 * [x] Add target config to Device Info (SBC, DAA and SLA)
 * [x] Improve support for preloader/brom only connection (for testing purposes with just preloader commands)
 * [x] Improve DA parsing and add DA patching
@@ -121,11 +106,8 @@ Core:
 TUI:
 * [x] Add partition read and write (Add partition list next to the action list)
 * [x] Make code reusable (add components like a custom FileExplorer, selectable list...)
-* [ ] Change logo with an animated waning crescent moon with blinking stars around
-* [ ] Add a switch on the welcome screen to enable or disable logging (with selection for log level)
-
-Scripts:
-* [ ] Parse sec policy from both preloader and lk (find a good seclib pattern)
+* [x] Change logo with an animated waning crescent moon with blinking stars around
+* [x] Add a switch on the welcome screen to enable or disable logging (with selection for log level)
 
 Documentation:
 * [x] Document XFlash protocol
@@ -133,14 +115,18 @@ Documentation:
 
 ## Learning Resources
 
-Penumbra has [its own documentation](https://shomy.is-a.dev/penumbra), where you can learn more about Mediatek devices and how the Download protocol works.
+Penumbra has [its own documentation](https://penumbra.itssho.my/), where you can learn more about Mediatek devices and how the Download protocol works.
 
 Other learning resources I suggest are the following
 * [mtkclient](https://github.com/bkerler/mtkclient)
 * [moto-experiments](https://github.com/R0rt1z2/moto-experiments)
 * [kaeru](https://github.com/R0rt1z2/kaeru)
-* [Carbonara exploit](https://shomy.is-a.dev/penumbra/Mediatek/Exploits/Carbonara)
+* [Carbonara exploit](https://penumbra.itssho.my/Mediatek/Exploits/Carbonara)
 * [mtk-payloads](https://github.com/shomykohai/mtk-payloads)
+* [da-boot](https://github.com/mt6572-mainline/da-boot)
+* [fenrir](https://github.com/R0rt1z2/fenrir)
+* [sprig](https://github.com/R0rt1z2/sprig)
+* [HeapB8 exploit technical writeup](https://blog.r0rt1z2.com/posts/exploiting-mediatek-datwo/)
 
 ## License
 
@@ -150,3 +136,5 @@ Part of the code in Penumbra is adapted from [mtkclient](https://github.com/bker
 under the GNU Public License v3 or later (GPL-3.0).
 
 As for term 13 of the GPL-3.0 license, the GPL-3.0 components must comply the networking terms of the AGPL-3.0 license when used together.
+
+Logo by [@archaeopteryz](https://github.com/archaeopteryz), all rights reserved. Use is allowed only for referencing "Penumbra" or "Antumbra", unless explicit permission has been granted.
