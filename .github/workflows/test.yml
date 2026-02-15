@@ -1,0 +1,73 @@
+name: Build Antumbra
+
+on:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Linux 构建
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install System Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libusb-1.0-0-dev libudev-dev pkg-config
+
+      - name: Build (release)
+        run: cargo build --release -p antumbra --all-features --verbose
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: antumbra-linux-x86_64
+          path: target/release/antumbra
+
+      - name: Tree files
+        run: tree ${{ github.workspace }}
+
+
+  # Windows 构建 （ 含driver）
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install NSIS
+        run: choco install nsis -y
+
+      - name: Build (release)
+        run: cargo build --release -p antumbra --all-features --verbose
+
+
+      - name: Build Penumbra driver installer
+        run: |
+          cd scripts\drivers
+          "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
+        shell: cmd
+
+      #- name: Upload artifact
+       # uses: actions/upload-artifact@v4
+        #with:
+         # name: antumbra-windows-x86_64
+          #path: |
+           # target\release\antumbra.exe
+            #scripts\drivers\PenumbraDrivers.exe
+
+      - name: Tree files
+        run: tree ${{ github.workspace }}
