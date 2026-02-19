@@ -55,18 +55,18 @@ jobs:
         run: cargo build --release -p antumbra --all-features --verbose
 
 
-      - name: Build Penumbra driver installer
-        run: |
-          cd scripts\drivers
-          "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
-        shell: cmd
+      #- name: Build Penumbra driver installer
+        #run: |
+          #cd scripts\drivers
+          #"C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
+        #shell: cmd
 
-      #- name: Upload artifact
-       # uses: actions/upload-artifact@v4
-        #with:
-         # name: antumbra-windows-x86_64
-          #path: |
-           # target\release\antumbra.exe
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: antumbra-windows-x86_64
+          path: |
+            target\release\antumbra.exe
             #scripts\drivers\PenumbraDrivers.exe
 
       - name: Tree files
